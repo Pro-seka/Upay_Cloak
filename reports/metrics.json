@@ -1,0 +1,65 @@
+{
+  "data": {
+    "n_test": 19928,
+    "test_fraud_rate": 0.019,
+    "best_iteration": 76
+  },
+  "lightgbm_only": {
+    "roc_auc": 0.9993,
+    "pr_auc": 0.9485,
+    "precision@0.5%": 0.9495,
+    "recall@0.5%": 0.248,
+    "precision@1.0%": 0.9497,
+    "recall@1.0%": 0.4987,
+    "precision@2.0%": 0.9221,
+    "recall@2.0%": 0.9683
+  },
+  "isolation_forest_only": {
+    "roc_auc": 0.9874,
+    "pr_auc": 0.6779,
+    "precision@0.5%": 0.9091,
+    "recall@0.5%": 0.2375,
+    "precision@1.0%": 0.7538,
+    "recall@1.0%": 0.3958,
+    "precision@2.0%": 0.5829,
+    "recall@2.0%": 0.6121
+  },
+  "blended": {
+    "roc_auc": 0.9985,
+    "pr_auc": 0.9413,
+    "precision@0.5%": 0.9495,
+    "recall@0.5%": 0.248,
+    "precision@1.0%": 0.9447,
+    "recall@1.0%": 0.496,
+    "precision@2.0%": 0.9246,
+    "recall@2.0%": 0.971
+  },
+  "business_impact": {
+    "thresholds": {
+      "otp_step_up": 0.2,
+      "hold": 0.25,
+      "block": 0.3
+    },
+    "fraud_value_total_bdt": 3224488.0,
+    "fraud_value_prevented_bdt": 2995855.1499999994,
+    "pct_fraud_value_prevented": 0.9291,
+    "legit_txns_with_friction_pct": 0.005,
+    "alert_rate_pct": 0.0237,
+    "friction_cost_bdt": 8900.0,
+    "net_benefit_bdt": 2986955.1499999994,
+    "analyst_queue_size": 392,
+    "actions": {
+      "allow": 19456,
+      "otp_step_up": 80,
+      "hold": 18,
+      "block": 374
+    }
+  },
+  "scenario_recall": {
+    "ato": 1.0,
+    "mule_passthrough": 1.0,
+    "scam_victim": 0.886,
+    "structuring": 1.0
+  },
+  "notes": "Synthetic data with 6% label noise and legit large one-offs; treat absolute numbers as indicative only."
+}

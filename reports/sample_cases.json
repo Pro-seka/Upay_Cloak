@@ -1,0 +1,266 @@
+[
+  {
+    "txn_id": "TXN-0062110",
+    "user_id": "U01555",
+    "what_happened": {
+      "type": "TRANSFER",
+      "amount_bdt": 4190.0,
+      "recipient": "MU0-0",
+      "device": "DX932403",
+      "location": "Sylhet",
+      "time": "2026-01-26 01:40:13"
+    },
+    "why_risky": {
+      "risk_score": 0.9901,
+      "model_score": 0.99,
+      "anomaly_score": 0.9905,
+      "reasons": [
+        {
+          "feature": "amount_sum_1h",
+          "value": 23285.0,
+          "shap": 2.799,
+          "text": "BDT 23,285 moved in the last hour"
+        },
+        {
+          "feature": "amount_to_balance",
+          "value": 0.2972263602184862,
+          "shap": 2.148,
+          "text": "Moves 30% of the wallet balance"
+        },
+        {
+          "feature": "log_secs_since_last",
+          "value": 5.198497031265826,
+          "shap": 1.61,
+          "text": "log_secs_since_last"
+        },
+        {
+          "feature": "is_night",
+          "value": 1.0,
+          "shap": 1.54,
+          "text": "Night-time transaction"
+        }
+      ],
+      "rule_trace": [],
+      "tags": []
+    },
+    "what_next": {
+      "action": "block"
+    }
+  },
+  {
+    "txn_id": "TXN-0072325",
+    "user_id": "MU3-0",
+    "what_happened": {
+      "type": "TRANSFER",
+      "amount_bdt": 1772.0,
+      "recipient": "MU3-2",
+      "device": "DR3",
+      "location": "Dhaka",
+      "time": "2026-01-29 05:51:42"
+    },
+    "why_risky": {
+      "risk_score": 0.9764,
+      "model_score": 0.9706,
+      "anomaly_score": 0.9995,
+      "reasons": [
+        {
+          "feature": "device_users_count",
+          "value": 4.0,
+          "shap": 3.962,
+          "text": "Device shared by 4 accounts"
+        },
+        {
+          "feature": "amount_to_balance",
+          "value": 0.8699067255768287,
+          "shap": 2.931,
+          "text": "Moves 87% of the wallet balance"
+        },
+        {
+          "feature": "inbound_1h",
+          "value": 5848.0,
+          "shap": 0.92,
+          "text": "Wallet received BDT 5,848 within the last hour"
+        },
+        {
+          "feature": "amount_sum_1h",
+          "value": 5148.0,
+          "shap": 0.46,
+          "text": "BDT 5,148 moved in the last hour"
+        }
+      ],
+      "rule_trace": [
+        {
+          "rule_id": "MULE_02",
+          "tag": "mule_network",
+          "text": "Device shared by 4 accounts"
+        }
+      ],
+      "tags": [
+        "mule_network"
+      ]
+    },
+    "what_next": {
+      "action": "block"
+    }
+  },
+  {
+    "txn_id": "TXN-0072093",
+    "user_id": "U01761",
+    "what_happened": {
+      "type": "TRANSFER",
+      "amount_bdt": 10474.0,
+      "recipient": "MU6-0",
+      "device": "D01761",
+      "location": "Chattogram",
+      "time": "2026-01-28 21:50:32"
+    },
+    "why_risky": {
+      "risk_score": 0.9499,
+      "model_score": 0.9489,
+      "anomaly_score": 0.9539,
+      "reasons": [
+        {
+          "feature": "amount_z",
+          "value": 3.18484905043758,
+          "shap": 2.053,
+          "text": "Amount is 3.2 std devs above this user's usual spend"
+        },
+        {
+          "feature": "recipient_inbound_count",
+          "value": 34.0,
+          "shap": 1.816,
+          "text": "Recipient has 34 inbound transfers (fan-in)"
+        },
+        {
+          "feature": "recipient_age_txns",
+          "value": 21.0,
+          "shap": 1.118,
+          "text": "Recipient account has little history (21 txns)"
+        },
+        {
+          "feature": "amount_to_balance",
+          "value": 0.8999828149166523,
+          "shap": 1.046,
+          "text": "Moves 90% of the wallet balance"
+        }
+      ],
+      "rule_trace": [
+        {
+          "rule_id": "SCAM_01",
+          "tag": "scam_victim",
+          "text": "First-time recipient with an amount far above this user's norm"
+        }
+      ],
+      "tags": [
+        "scam_victim"
+      ]
+    },
+    "what_next": {
+      "action": "block"
+    }
+  },
+  {
+    "txn_id": "TXN-0066708",
+    "user_id": "U00450",
+    "what_happened": {
+      "type": "CASH_OUT",
+      "amount_bdt": 47990.0,
+      "recipient": "A047",
+      "device": "D00450",
+      "location": "Dhaka",
+      "time": "2026-01-27 14:32:31"
+    },
+    "why_risky": {
+      "risk_score": 0.8055,
+      "model_score": 0.7602,
+      "anomaly_score": 0.9867,
+      "reasons": [
+        {
+          "feature": "amount_sum_1h",
+          "value": 191776.0,
+          "shap": 2.807,
+          "text": "BDT 191,776 moved in the last hour"
+        },
+        {
+          "feature": "near_thr_24h",
+          "value": 7.0,
+          "shap": 1.392,
+          "text": "7 cash-outs just under the 50,000 BDT threshold in 24h"
+        },
+        {
+          "feature": "amount_to_balance",
+          "value": 0.5875942795572534,
+          "shap": 1.148,
+          "text": "Moves 59% of the wallet balance"
+        },
+        {
+          "feature": "amount",
+          "value": 47990.0,
+          "shap": 0.962,
+          "text": "Large amount (BDT 47,990)"
+        }
+      ],
+      "rule_trace": [
+        {
+          "rule_id": "STRUCT_01",
+          "tag": "structuring",
+          "text": "Repeated cash-outs just under the 50,000 BDT threshold"
+        }
+      ],
+      "tags": [
+        "structuring"
+      ]
+    },
+    "what_next": {
+      "action": "block"
+    }
+  },
+  {
+    "txn_id": "TXN-0064631",
+    "user_id": "U00435",
+    "what_happened": {
+      "type": "TRANSFER",
+      "amount_bdt": 11515.0,
+      "recipient": "U01357",
+      "device": "D00435",
+      "location": "Dhaka",
+      "time": "2026-01-27 04:43:47"
+    },
+    "why_risky": {
+      "risk_score": 0.4226,
+      "model_score": 0.3434,
+      "anomaly_score": 0.7396,
+      "reasons": [
+        {
+          "feature": "amount_z",
+          "value": 2.1654613910164255,
+          "shap": 1.198,
+          "text": "Amount is 2.2 std devs above this user's usual spend"
+        },
+        {
+          "feature": "amount",
+          "value": 11515.0,
+          "shap": 1.164,
+          "text": "Large amount (BDT 11,515)"
+        },
+        {
+          "feature": "amount_sum_1h",
+          "value": 11515.0,
+          "shap": 1.13,
+          "text": "BDT 11,515 moved in the last hour"
+        },
+        {
+          "feature": "log_amount",
+          "value": 9.351492651732066,
+          "shap": 1.13,
+          "text": "log_amount"
+        }
+      ],
+      "rule_trace": [],
+      "tags": []
+    },
+    "what_next": {
+      "action": "block"
+    }
+  }
+]
