@@ -1,0 +1,17 @@
+layout('Dashboard');const $=s=>document.querySelector(s);let rows=[];
+function countUp(el,to,fmt){const t0=performance.now();(function f(n){const p=Math.min(1,(n-t0)/1100);el.textContent=fmt(to*(1-Math.pow(1-p,3)));if(p<1)requestAnimationFrame(f)})(t0)}
+api.getOverview().then(o=>{const k=o.kpis;const items=[['Transactions scored',k.scored,x=>Math.round(x).toLocaleString('en-IN')],['Alerts raised',k.alerts,Math.round],['Blocked or held',k.blocked,Math.round],['Amount protected',k.protected,BDT],['Avg scoring latency',k.latency],['False-positive rate',k.fp]];
+ $('#kpis').innerHTML=items.map((x,i)=>`<div class="card kpi" style="--i:${i}"><span>${x[0]}</span><b>${x[2]?'0':x[1]}</b></div>`).join('');
+ items.forEach((x,i)=>x[2]&&countUp($('#kpis').children[i].querySelector('b'),x[1],x[2]));
+ Chart.defaults.font.family="'Plus Jakarta Sans',sans-serif";
+ new Chart($('#c1'),{type:'doughnut',data:{labels:Object.keys(o.dist).map(riskLabel),datasets:[{data:Object.values(o.dist),backgroundColor:Object.keys(o.dist).map(l=>RC[l]),borderWidth:3}]},options:{cutout:'66%',plugins:{legend:{position:'bottom'}}}});
+ new Chart($('#c2'),{type:'line',data:{labels:o.trend.map((_,i)=>(i*2)+':00'),datasets:[{data:o.trend,borderColor:'#0EA58F',backgroundColor:'#0EA58F22',fill:true,tension:.4}]},options:{plugins:{legend:{display:false}}}});
+ new Chart($('#c3'),{type:'bar',data:{labels:o.reasons.map(r=>r[0]),datasets:[{data:o.reasons.map(r=>r[1]),backgroundColor:'#0F4450',borderRadius:6}]},options:{indexAxis:'y',plugins:{legend:{display:false}}}});
+ $('#agents').innerHTML=o.agents.map(a=>`<div class="ag"><b>${esc(a.id)}</b><div class="track"><div class="fill" style="background:${RC[riskLvl(a.score)]}" data-w="${a.score*100}"></div></div><span>${a.score.toFixed(2)}</span></div>`).join('')+'<p class="mut">Anomaly score vs. peer median 0.20</p>';
+ setTimeout(()=>document.querySelectorAll('.fill').forEach(f=>f.style.width=f.dataset.w+'%'),100)});
+function feed(first){const f=$('#fr').value,tb=$('#feed');tb.innerHTML=rows.filter(t=>f==='all'||t.risk_level===f).slice(0,12).map((t,i)=>`<tr data-id="${t.id}" tabindex=0 class="${first&&i===0?'new':''}"><td>${fmtTime(t.timestamp)}<td>${t.type.replace('_',' ')}<td>${BDT(t.amount_bdt)}<td>${esc(t.sender)} → ${esc(t.receiver)}<td>${badge(t.risk_level)}<td>${DEC[t.decision]}`).join('')||'<tr><td colspan=6 class=mut>No transactions at this risk level yet.'}
+$('#fr').onchange=()=>feed();
+$('#feed').onclick=e=>{const tr=e.target.closest('tr');if(!tr||!tr.dataset.id)return;const t=rows.find(x=>x.id===tr.dataset.id),c=MOCK.cases.find(c=>c.entity.id===t.sender);c?location.href='case.html?id='+c.case_id:toast(`${DEC[t.decision]}: ${t.reasons.find(r=>r.contribution>0)?.label||'low-risk pattern'}. No case opened.`)};
+api.getTransactions().then(t=>{rows=t.slice(0,40);feed();setInterval(()=>{const n=genTxn(Date.now()%1e5);n.timestamp=new Date().toISOString();n.id='TXN-L'+Date.now();rows.unshift(n);feed(true)},3500)});
+function queue(){api.getCases({alert_type:$('#fa').value}).then(cs=>{const l=cs.filter(c=>c.severity==='critical'||c.severity==='high').slice(0,5);$('#q').innerHTML=l.map(c=>`<div class="qrow">${badge(c.severity)}<span><b>${esc(c.case_id)}</b> · ${c.alert_type.replace(/_/g,' ')}<br><span class=mut>${esc(c.what_happened.slice(0,90))}…</span></span><a class="btn" href="case.html?id=${c.case_id}">Investigate</a></div>`).join('')||'<p class=mut>No open alerts of this type. Pick another type.</p>'})}
+$('#fa').onchange=queue;queue();
