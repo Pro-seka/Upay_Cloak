@@ -1,4 +1,8 @@
-"""Behavioural anomaly detector: Isolation Forest over per-user deviation features."""
+"""Behavioural anomaly detector: Isolation Forest over per-user deviation features.
+
+Unsupervised (never sees labels). Score is a 0..1 percentile against the training
+distribution, so "0.99" means "more unusual than 99% of training transactions".
+"""
 import numpy as np
 from sklearn.ensemble import IsolationForest
 
@@ -17,7 +21,9 @@ class BehaviorAnomaly:
         self.ref = np.sort(-self.model.decision_function(X))
         return self
 
+    def raw(self, feats):
+        return -self.model.decision_function(feats[ANOM_FEATURES].values)
+
     def score(self, feats):
-        """0..1 anomaly score = percentile of raw score vs. training distribution."""
-        raw = -self.model.decision_function(feats[ANOM_FEATURES].values)
-        return np.searchsorted(self.ref, raw) / len(self.ref)
+        """0..1 anomaly percentile vs. the training distribution."""
+        return np.searchsorted(self.ref, self.raw(feats)) / len(self.ref)

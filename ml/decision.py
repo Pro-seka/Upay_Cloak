@@ -17,17 +17,19 @@ def action_idx(score, th):
     return np.digitize(score, th)                # th = [t_otp, t_hold, t_block]
 
 
-def total_cost(score, amount, y, th):
+def total_cost(score, amount, y, th, w=None):
+    """w = optional per-row weights (used by ml/feedback.py to up-weight analyst-reviewed cases)."""
+    w = np.ones(len(y)) if w is None else np.asarray(w, dtype=float)
     a = action_idx(score, th)
-    missed = (amount * (1 - STOP_RATE[a]))[y == 1].sum()
-    return missed + FRICTION[a][y == 0].sum()
+    missed = ((amount * (1 - STOP_RATE[a])) * w)[y == 1].sum()
+    return missed + (FRICTION[a] * w)[y == 0].sum()
 
 
-def tune_thresholds(score, amount, y):
+def tune_thresholds(score, amount, y, w=None):
     grid = np.round(np.arange(0.05, 0.96, 0.05), 2)
     best_cost, best = np.inf, None
     for t in itertools.combinations(grid, 3):
-        c = total_cost(score, amount, y, t)
+        c = total_cost(score, amount, y, t, w)
         if c < best_cost:
             best_cost, best = c, [float(x) for x in t]
     return best
