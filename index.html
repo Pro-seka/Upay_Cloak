@@ -1,0 +1,13 @@
+<!doctype html><html lang=en><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&family=Noto+Sans+Bengali:wght@400;700&display=swap" rel=stylesheet><link rel=stylesheet href="assets/css/style.css"><title>Dashboard · Upay_cloak</title><script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script></head><body><main id=main>
+<div class=head><div><h1>Dashboard</h1><p class=sub style="margin:2px 0 0">Every alert answers: what happened, why it is risky, what to do next.</p></div><div style="display:flex;gap:10px"><a class=btn href="#queue">+ Review alerts</a><a class="btn ghost" href="graph.html">Open graph</a></div></div>
+<div class="grid g4" id=kpis style="margin-top:20px"></div>
+<div class="grid g12" style="margin-top:14px">
+<section class="card s5"><h2>Alerts over time</h2><div class=pb id=bars></div></section>
+<section class="card s3 al" id=alert><h2>Priority alert</h2><p class=mut>Loading…</p></section>
+<section class="card s4"><h2>Top risk reasons</h2><div id=rsn></div></section>
+<section class="card s6"><div class=head><h2 style="margin:0;margin-right:auto">Live transactions</h2><select id=fr aria-label="Risk filter"><option value=all>All risk levels<option value=critical>Critical<option value=high>High<option value=medium>Medium<option value=low>Low</select></div><div id=feed></div></section>
+<section class="card s3"><h2>Risk mix</h2><div class=gw><canvas id=c1></canvas><div class=gv id=gv></div></div><div class=lg id=lg></div></section>
+<section class="card s3 trk"><h2>Live screening</h2><b id=clk>00:00:00</b><p id=st>Scoring transactions live</p><div class=pz><button id=pz aria-label="Pause or resume">❚❚</button><button id=rs aria-label="Stop and reset">■</button></div></section>
+<section class="card s8" id=queue><div class=head><h2 style="margin:0;margin-right:auto">Alert queue</h2><select id=fa aria-label="Alert type"><option value="">All alert types<option value=account_takeover>Account takeover<option value=mule_network>Mule network<option value=scam>Scam<option value=agent_anomaly>Agent anomaly</select></div><div id=q></div></section>
+<section class="card s4"><h2>Agents vs peers</h2><div id=agents></div></section>
+</div></main><script src="assets/js/utils.js"></script><script src="assets/js/data.js"></script><script src="assets/js/api.js"></script><script src="assets/js/layout.js"></script><script src="assets/js/dashboard.js"></script></body></html>
