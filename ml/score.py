@@ -1,7 +1,8 @@
-"""Scoring entry point for the backend: returns what-happened / why-risky / what-next per transaction.
+"""Scoring entry point for the backend: what-happened / why-risky / what-next per transaction.
 
-    python -m ml.score            # demo: scores the 5 riskiest test transactions
-v1 explanations = rule trace + tags + top deviating signals. SHAP reasons come in v2.
+    python -m ml.score        # demo: the 3 riskiest test transactions as case JSON
+
+Model artifact (models/risk_engine.joblib) holds: model, anomaly, features, thresholds (+ name, version).
 """
 import json
 import sys
@@ -13,7 +14,9 @@ import pandas as pd
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 from ml.decision import recommend  # noqa: E402
-from ml.features import build_features  # noqa: E402
+from ml.explain import Explainer  # noqa: E402
+
+MODEL_PATH = ROOT / "models" / "risk_engine.joblib"
 
 
 def rule_trace(r):
@@ -40,34 +43,46 @@ def rule_trace(r):
 
 
 class RiskEngine:
-    def __init__(self, path=ROOT / "models" / "risk_model_v1.joblib"):
+    def __init__(self, path=MODEL_PATH):
         art = joblib.load(path)
-        self.model, self.features, self.th, self.version = art["model"], art["features"], art["thresholds"], art["version"]
+        self.model, self.anomaly = art["model"], art["anomaly"]
+        self.features, self.th = art["features"], art["thresholds"]
+        self.version, self.name = art.get("version", "?"), art.get("name", "?")
+        self.explainer = Explainer(self.model, self.features)
 
-    def score_frame(self, feats: pd.DataFrame):
-        """feats must come from ml.features.build_features (point-in-time features)."""
+    def predict(self, feats: pd.DataFrame):
+        """Fast path (no explanations): risk, anomaly, action for every row."""
         risk = self.model.predict_proba(feats[self.features])[:, 1]
+        anomaly = self.anomaly.score(feats)
+        return risk, anomaly, [recommend(r, self.th) for r in risk]
+
+    def score_frame(self, feats: pd.DataFrame, explain="flagged"):
+        """feats must come from ml.features.build_features.
+        explain: "flagged" (SHAP only for non-allow rows), "all", or "none"."""
+        feats = feats.reset_index(drop=True)
+        risk, anomaly, actions = self.predict(feats)
+        idx = [i for i in range(len(feats)) if explain == "all" or (explain == "flagged" and actions[i] != "allow")]
+        shap_out = dict(zip(idx, self.explainer.explain(feats.loc[idx]))) if idx else {}
         cases = []
-        for i, r in feats.reset_index(drop=True).iterrows():
+        for i, r in feats.iterrows():
             trace = rule_trace(r)
             cases.append(dict(
                 txn_id=r.txn_id, user_id=r.user_id,
                 what_happened=dict(type=r.type, amount_bdt=r.amount, recipient=r.recipient_id,
                                    device=r.device_id, location=r.location, time=str(r.ts)),
-                why_risky=dict(risk_score=round(float(risk[i]), 4), rule_trace=trace,
-                               tags=sorted({h["tag"] for h in trace})),
-                what_next=dict(action=recommend(risk[i], self.th)),
+                why_risky=dict(risk_score=round(float(risk[i]), 4), anomaly_score=round(float(anomaly[i]), 4),
+                               feature_contributions=shap_out.get(i),
+                               rule_trace=trace, tags=sorted({h["tag"] for h in trace})),
+                what_next=dict(action=actions[i]),
                 model_version=self.version,
             ))
         return cases
 
 
 if __name__ == "__main__":
-    full = pd.concat([pd.read_csv(ROOT / "data" / f"{p}.csv", parse_dates=["ts"]) for p in ("train", "test")],
-                     ignore_index=True)
-    feats = build_features(full)
-    test = feats.iloc[-len(pd.read_csv(ROOT / "data" / "test.csv")):].reset_index(drop=True)
-    eng = RiskEngine()
-    cases = eng.score_frame(test)
-    cases.sort(key=lambda c: -c["why_risky"]["risk_score"])
-    print(json.dumps(cases[:3], indent=2, default=str))
+    from ml.cache import load_cache
+
+    cache = load_cache()
+    top = cache[cache.split == "test"].sort_values("risk_score", ascending=False).head(3)
+    cases = RiskEngine().score_frame(top)
+    print(json.dumps(cases, indent=2, default=str))

@@ -2,7 +2,8 @@
 
 Usage (from repo root):  python -m ml.train
 Reads  data/train.csv + data/test.csv   (time-based split made by scripts/generate_data.py)
-Writes models/risk_model_v1.joblib, reports/metrics_v1.json, reports/model_comparison_v1.md, reports/*.png
+Writes models/risk_engine.joblib, data/cache/scored_cache.parquet, reports/metrics_v1.json,
+reports/model_comparison_v1.md, reports/shap_importance_v1.json, reports/*.png
 """
 import json
 import sys
@@ -17,7 +18,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from sklearn.ensemble import IsolationForest, RandomForestClassifier
+from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import average_precision_score, precision_recall_curve, roc_auc_score
 from sklearn.pipeline import make_pipeline
@@ -25,12 +26,16 @@ from sklearn.preprocessing import StandardScaler
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
+from ml.anomaly import BehaviorAnomaly  # noqa: E402
 from ml.decision import ACTIONS, FRICTION, STOP_RATE, action_idx, tune_thresholds  # noqa: E402
+from ml.explain import Explainer  # noqa: E402
 from ml.features import FEATURES, build_features  # noqa: E402
 
 warnings.filterwarnings("ignore")
 SEED = 42
-VERSION = "v1"
+VERSION = "v1"            # names the report files (metrics_v1.json ...)
+ARTIFACT_VERSION = "v1.1"  # stored inside models/risk_engine.joblib and returned by the API
+FEEDBACK_LABELS = ROOT / "data" / "feedback_labels.csv"   # optional, written by ml/feedback.py
 
 
 def ranking_metrics(y, s, ks=(0.01, 0.03)):
@@ -70,6 +75,13 @@ def main():
     feats = build_features(pd.concat([train_raw, test_raw], ignore_index=True))
     tr_all, te = (feats[feats._part == p].reset_index(drop=True) for p in ("train", "test"))
 
+    # Analyst feedback (confirmed / dismissed cases) overrides TRAINING labels only; test labels stay untouched.
+    if FEEDBACK_LABELS.exists():
+        fb = pd.read_csv(FEEDBACK_LABELS).drop_duplicates("txn_id", keep="last").set_index("txn_id").is_fraud
+        hit = tr_all.txn_id.isin(fb.index)
+        tr_all.loc[hit, "is_fraud"] = tr_all.loc[hit, "txn_id"].map(fb).astype(int)
+        print(f"applied {int(hit.sum())} analyst-feedback labels to the training data")
+
     # carve a validation slice (last 20% of train, by time) for model selection + threshold tuning
     cut = tr_all.ts.quantile(0.8)
     tr, va = tr_all[tr_all.ts < cut].reset_index(drop=True), tr_all[tr_all.ts >= cut].reset_index(drop=True)
@@ -94,12 +106,9 @@ def main():
         results[name] = dict(valid=ranking_metrics(yva, val_scores[name]), test=ranking_metrics(yte, test_scores[name]))
 
     # unsupervised baseline: Isolation Forest on behaviour-deviation features only (never sees labels)
-    anom_cols = ["amount_z", "hour_freq", "is_new_device", "is_new_location", "is_new_recipient",
-                 "txn_count_1h", "amount_to_balance", "log_secs_since_last", "device_users_count"]
-    iso = IsolationForest(n_estimators=200, random_state=SEED, n_jobs=-1).fit(tr[anom_cols])
+    anomaly = BehaviorAnomaly(SEED).fit(tr)
     results["Isolation Forest (unsupervised)"] = dict(
-        valid=ranking_metrics(yva, -iso.decision_function(va[anom_cols])),
-        test=ranking_metrics(yte, -iso.decision_function(te[anom_cols])))
+        valid=ranking_metrics(yva, anomaly.score(va)), test=ranking_metrics(yte, anomaly.score(te)))
 
     # pick the best supervised model by VALIDATION PR-AUC (test is only used for the final report)
     best = max(models, key=lambda n: results[n]["valid"]["pr_auc"])
@@ -114,8 +123,12 @@ def main():
     # ---------- save artefacts ----------
     (ROOT / "models").mkdir(exist_ok=True)
     (ROOT / "reports").mkdir(exist_ok=True)
-    joblib.dump(dict(model=models[best], name=best, features=FEATURES, thresholds=th, version=VERSION),
-                ROOT / "models" / f"risk_model_{VERSION}.joblib")
+    joblib.dump(dict(model=models[best], anomaly=anomaly, name=best, features=FEATURES, thresholds=th,
+                     version=ARTIFACT_VERSION), ROOT / "models" / "risk_engine.joblib")
+
+    # global explainability: mean |contribution| per feature on a test sample
+    shap_imp = Explainer(models[best], FEATURES).global_importance(Xte.sample(min(1500, len(Xte)), random_state=1))
+    (ROOT / "reports" / f"shap_importance_{VERSION}.json").write_text(json.dumps(shap_imp.round(4).to_dict(), indent=2))
     metrics = dict(version=VERSION, best_model=best, split=dict(train=len(tr), valid=len(va), test=len(te)),
                    models=results, business_impact=impact, scenario_recall=scenario_recall,
                    notes="Synthetic data with 6% label noise. Absolute numbers are optimistic; use for model comparison.")
@@ -149,6 +162,10 @@ def main():
     print(f"Fraud value prevented: {impact['pct_fraud_value_prevented']:.1%} | legit txns with friction: "
           f"{impact['legit_txns_with_friction_pct']:.2%} | net benefit BDT {impact['net_benefit_bdt']:,.0f}")
     print("Recall by scenario (any action triggered):", scenario_recall)
+    print("Top global factors:", ", ".join(f"{k} ({v:.3f})" for k, v in shap_imp.head(5).items()))
+
+    from ml.cache import build_cache
+    build_cache()          # so the backend boots instantly from data/cache/scored_cache.parquet
 
 
 if __name__ == "__main__":
