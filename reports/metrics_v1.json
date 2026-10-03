@@ -64,7 +64,7 @@
     "Isolation Forest (unsupervised)": {
       "valid": {
         "roc_auc": 0.9863,
-        "pr_auc": 0.786,
+        "pr_auc": 0.7863,
         "precision@1%": 0.8864,
         "recall@1%": 0.2617,
         "precision@3%": 0.8358,
@@ -72,7 +72,7 @@
       },
       "test": {
         "roc_auc": 0.9777,
-        "pr_auc": 0.6655,
+        "pr_auc": 0.665,
         "precision@1%": 0.7917,
         "recall@1%": 0.2857,
         "precision@3%": 0.6597,
