@@ -359,7 +359,7 @@ Developed with pride for the **Upay AI Dev Fest (Track 01: Trust & Risk Intellig
 | Name | Role | Responsibilities & Ownership | GitHub |
 |---|---|---|---|
 | **Abu Ridwan Siddque** | **ML & Data Lead** | Synthetic dataset generation, 23 point-in-time features, LightGBM/Isolation Forest training, SHAP explainability, model evaluation, and feedback calibration. | [@Ridwan-Rythm](https://github.com/Ridwan-Rythm) |
-| **Md Sakib Hasan** | **Backend & Intelligence Lead** | FastAPI architecture, NetworkX graph intelligence, agent peer-group modeling, decision policy engine, grounded AI investigation assistant, and test suites. | [@sakib-hsn](https://github.com/sakib.hsn44) |
+| **Md. Sakib Hasan** | **Backend & Intelligence Lead** | FastAPI architecture, NetworkX graph intelligence, agent peer-group modeling, decision policy engine, grounded AI investigation assistant, and test suites. | [@sakib-hsn](https://github.com/sakib.hsn44) |
 | **Aritro Das** | **Frontend & Product Lead** | Analyst dashboard UI, interactive graph explorer, case investigation view, bilingual English/Bangla warning demo, and design system. | [@aritrodas](https://github.com/aritrodas) |
 
 ---
