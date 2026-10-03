@@ -1,0 +1,14 @@
+const BDT=n=>'৳'+Math.round(n).toLocaleString('en-IN');
+const escapeHTML=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])),esc=escapeHTML;
+const fmtTime=i=>new Date(i).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+const RC={low:'#1B9E6A',medium:'#D99A0B',high:'#EC6A1E',critical:'#D32C45'};
+const riskLabel=l=>l[0].toUpperCase()+l.slice(1);
+const riskLvl=s=>s<.3?'low':s<.55?'medium':s<.8?'high':'critical';
+const badge=l=>`<span class="badge ${l}">${{critical:'▲',high:'●',medium:'◆',low:'✓'}[l]} ${riskLabel(l)}</span>`;
+const DEC={allow:'Allow',warn:'Warn',step_up:'Step-up',hold:'Hold',block:'Block'};
+const SHAPE={wallet:'dot',agent:'diamond',merchant:'square',device:'triangle'};
+const toVisNode=n=>({id:n.id,label:n.label,shape:SHAPE[n.type]||'dot',size:10+Math.min(26,Math.sqrt(n.total_volume_bdt)/9),color:{background:RC[riskLvl(n.risk_score)],border:'#fff'},borderWidth:2,font:{size:10,color:'#12262C'},title:`${n.label} · ${n.type} · risk ${n.risk_score.toFixed(2)} · ${BDT(n.total_volume_bdt)}`});
+const toVisEdge=e=>({from:e.source,to:e.target,arrows:'to',width:1+Math.min(6,e.amount_bdt/6000),color:{color:'#9DB2B8',opacity:.8}});
+
+const CFG=()=>{const d={name:'Ridwan Siddique',role:'Risk analyst',speed:3500,lang:'en'};try{return{...d,...JSON.parse(localStorage.getItem('uc')||'{}')}}catch(e){return d}};
+const ini=n=>n.split(/\s+/).filter(Boolean).slice(0,2).map(x=>x[0].toUpperCase()).join('');
