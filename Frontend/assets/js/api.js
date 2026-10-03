@@ -1,5 +1,5 @@
 /* Only file that knows mock vs real: set USE_MOCK=false and BASE_URL. */
-const USE_MOCK=true,BASE_URL='/api',AUD={};let FULLG=null;
+const USE_MOCK=false,BASE_URL='/api',AUD={};let FULLG=null;
 const wait=ms=>new Promise(r=>setTimeout(r,ms)),http=(p,o)=>fetch(BASE_URL+p,o).then(r=>r.json());
 const findCase=id=>MOCK.cases.find(c=>c.case_id===id);
 function fullGraph(){if(FULLG)return FULLG;const hub='019XX-XXX305',N=[],E=[],add=(id,type,risk,ring)=>{while(N.some(n=>n.id===id))id=wid();N.push({id,type,label:id,risk_score:risk,total_volume_bdt:0,flags:ring?['Mule ring']:[],ring:!!ring});return id},edge=(s,t,a)=>E.push({source:s,target:t,amount_bdt:a,count:1,last_seen:'today'});
