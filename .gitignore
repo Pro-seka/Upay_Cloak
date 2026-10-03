@@ -2,6 +2,6 @@ __pycache__/
 *.pyc
 .venv/
 .env
-data/*.csv
-models/*.joblib
 .DS_Store
+# trained models are rebuilt with `python -m ml.train` (keep the repo small)
+models/*.joblib
