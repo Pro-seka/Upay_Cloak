@@ -71,5 +71,6 @@ reports/   metrics, model comparison table and chart
 
 ## Team
 - AI/ML: Ridwan Rythm
-- Backend / Intelligence: _TBD_
-- Frontend / Product: _TBD_
+- Backend / Intelligence: Md. Sakib Hasan
+- Frontend / Product: Aritro Das
+- 
