@@ -26,7 +26,7 @@ def total_cost(score, amount, y, th, w=None):
 
 
 def tune_thresholds(score, amount, y, w=None):
-    grid = np.round(np.arange(0.05, 0.96, 0.05), 2)
+    grid = np.round(np.r_[0.01, 0.02, 0.03, 0.04, np.arange(0.05, 0.96, 0.05)], 2)   # fine steps at the low end: scores of a class-weighted model sit low
     best_cost, best = np.inf, None
     for t in itertools.combinations(grid, 3):
         c = total_cost(score, amount, y, t, w)

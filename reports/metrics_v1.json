@@ -1,110 +1,109 @@
 {
   "version": "v1",
-  "best_model": "Random Forest",
+  "best_model": "LightGBM",
   "split": {
-    "train": 17971,
-    "valid": 4493,
-    "test": 9628
+    "train": 44637,
+    "valid": 11160,
+    "test": 23914
   },
   "models": {
     "Logistic Regression": {
       "valid": {
-        "roc_auc": 0.9983,
-        "pr_auc": 0.919,
-        "precision@1%": 0.9318,
-        "recall@1%": 0.2752,
-        "precision@3%": 0.9179,
-        "recall@3%": 0.8255
+        "roc_auc": 0.9984,
+        "pr_auc": 0.9353,
+        "precision@1%": 0.973,
+        "recall@1%": 0.3529,
+        "precision@3%": 0.8473,
+        "recall@3%": 0.9248
       },
       "test": {
-        "roc_auc": 0.9982,
-        "pr_auc": 0.9119,
-        "precision@1%": 0.9271,
-        "recall@1%": 0.3346,
-        "precision@3%": 0.8542,
-        "recall@3%": 0.9248
+        "roc_auc": 0.9925,
+        "pr_auc": 0.8368,
+        "precision@1%": 0.9498,
+        "recall@1%": 0.4924,
+        "precision@3%": 0.5662,
+        "recall@3%": 0.8807
       }
     },
     "Random Forest": {
       "valid": {
-        "roc_auc": 0.9985,
-        "pr_auc": 0.9291,
-        "precision@1%": 0.9318,
-        "recall@1%": 0.2752,
-        "precision@3%": 0.9403,
-        "recall@3%": 0.8456
+        "roc_auc": 0.9988,
+        "pr_auc": 0.918,
+        "precision@1%": 0.9189,
+        "recall@1%": 0.3333,
+        "precision@3%": 0.8892,
+        "recall@3%": 0.9706
       },
       "test": {
-        "roc_auc": 0.9979,
-        "pr_auc": 0.8975,
-        "precision@1%": 0.8958,
-        "recall@1%": 0.3233,
-        "precision@3%": 0.8611,
-        "recall@3%": 0.9323
+        "roc_auc": 0.9988,
+        "pr_auc": 0.9075,
+        "precision@1%": 0.9414,
+        "recall@1%": 0.4881,
+        "precision@3%": 0.636,
+        "recall@3%": 0.9892
       }
     },
     "LightGBM": {
       "valid": {
-        "roc_auc": 0.9985,
-        "pr_auc": 0.9198,
-        "precision@1%": 0.8864,
-        "recall@1%": 0.2617,
-        "precision@3%": 0.9328,
-        "recall@3%": 0.8389
+        "roc_auc": 0.999,
+        "pr_auc": 0.9407,
+        "precision@1%": 0.9279,
+        "recall@1%": 0.3366,
+        "precision@3%": 0.8982,
+        "recall@3%": 0.9804
       },
       "test": {
-        "roc_auc": 0.9985,
-        "pr_auc": 0.9314,
-        "precision@1%": 0.9271,
-        "recall@1%": 0.3346,
-        "precision@3%": 0.8819,
-        "recall@3%": 0.9549
+        "roc_auc": 0.9986,
+        "pr_auc": 0.9114,
+        "precision@1%": 0.9247,
+        "recall@1%": 0.4794,
+        "precision@3%": 0.6346,
+        "recall@3%": 0.987
       }
     },
     "Isolation Forest (unsupervised)": {
       "valid": {
-        "roc_auc": 0.9863,
-        "pr_auc": 0.7863,
-        "precision@1%": 0.8864,
-        "recall@1%": 0.2617,
-        "precision@3%": 0.8358,
-        "recall@3%": 0.7517
+        "roc_auc": 0.9796,
+        "pr_auc": 0.6254,
+        "precision@1%": 0.7568,
+        "recall@1%": 0.2745,
+        "precision@3%": 0.5659,
+        "recall@3%": 0.6176
       },
       "test": {
-        "roc_auc": 0.9777,
-        "pr_auc": 0.665,
-        "precision@1%": 0.7917,
-        "recall@1%": 0.2857,
-        "precision@3%": 0.6597,
-        "recall@3%": 0.7143
+        "roc_auc": 0.9856,
+        "pr_auc": 0.6408,
+        "precision@1%": 0.7448,
+        "recall@1%": 0.3861,
+        "precision@3%": 0.4979,
+        "recall@3%": 0.7744
       }
     }
   },
   "business_impact": {
     "thresholds": {
-      "otp_step_up": 0.1,
-      "hold": 0.15,
-      "block": 0.2
+      "otp_step_up": 0.01,
+      "hold": 0.02,
+      "block": 0.03
     },
-    "fraud_value_total_bdt": 3261716.0,
-    "fraud_value_prevented_bdt": 3067245.45,
-    "pct_fraud_value_prevented": 0.9404,
-    "legit_txns_with_friction_pct": 0.0151,
-    "alert_rate_pct": 0.0416,
-    "friction_cost_bdt": 22660.0,
-    "net_benefit_bdt": 3044585.45,
+    "fraud_value_total_bdt": 4465061.0,
+    "fraud_value_prevented_bdt": 4100575.0,
+    "pct_fraud_value_prevented": 0.9184,
+    "legit_txns_with_friction_pct": 0.0053,
+    "alert_rate_pct": 0.0236,
+    "friction_cost_bdt": 24580.0,
+    "net_benefit_bdt": 4075995.0,
     "actions": {
-      "allow": 9227,
-      "otp_step_up": 45,
-      "hold": 43,
-      "block": 313
+      "allow": 23350,
+      "otp_step_up": 44,
+      "hold": 22,
+      "block": 498
     }
   },
   "scenario_recall": {
-    "ato": 1.0,
+    "ato": 0.927,
     "mule_passthrough": 1.0,
-    "rogue_agent": 1.0,
-    "scam_victim": 0.812,
+    "scam_victim": 0.688,
     "structuring": 1.0
   },
   "notes": "Synthetic data with 6% label noise. Absolute numbers are optimistic; use for model comparison."

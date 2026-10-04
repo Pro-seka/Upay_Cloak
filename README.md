@@ -1,4 +1,4 @@
-# UpayShield (Upay_Cloak)
+# UpayShield (Upay_cloak)
 **A Case-Centric Trust & Risk Intelligence Platform for Mobile Financial Services**
 
 Built for the **Upay AI Dev Fest — Track 01: Trust & Risk Intelligence**  
@@ -55,7 +55,7 @@ To provide Upay with a production-grade, end-to-end trust and risk engine that d
 
 | # | Feature / Module | AI / Algorithmic Implementation |
 |---|---|---|
-| **1** | **Real-Time Transaction Risk Scoring** | High-throughput **LightGBM Classifier** combined with a cost-sensitive decision engine returning risk scores (0.0 to 1.0) and recommended actions within **<15 ms**. |
+| **1** | **Real-Time Transaction Risk Scoring** | High-throughput **LightGBM Classifier** combined with a cost-sensitive decision engine returning risk scores (0.0 to 1.0) and recommended actions in about **15 ms** per transaction (model + anomaly score, excluding feature computation). |
 | **2** | **Behavioral Anomaly Detection** | **Isolation Forest** coupled with rolling per-user statistical baselines (amount z-score, transacting hours, recipient novelty, and device velocity). |
 | **3** | **Account Takeover (ATO) Detection** | Multi-signal heuristic and classifier rules detecting abrupt changes in device fingerprint, geo-location hops, late-night activity, and rapid balance drain. |
 | **4** | **Mule & Network Ring Discovery** | In-memory **NetworkX Graph Engine** analyzing directed transaction flows, identifying high fan-in/fan-out ratios, rapid pass-through velocity, shared device clusters, and community subgraphs. |
@@ -193,7 +193,7 @@ cp .env.example .env
 
 ## 7. Environment Variables
 
-All settings are managed via [`backend/app/config.py`](file:///d:/Upay_Cloak/backend/app/config.py) and read from `.env` or system environment variables. **Every variable includes a safe default, so the application boots and functions with zero configuration.**
+All settings are managed via [`backend/app/config.py`](backend/app/config.py) and read from `.env` or system environment variables. **Every variable includes a safe default, so the application boots and functions with zero configuration.**
 
 | Variable | Type | Default | Description |
 |---|---|---|---|
@@ -218,7 +218,7 @@ All settings are managed via [`backend/app/config.py`](file:///d:/Upay_Cloak/bac
 ## 8. Run & Build Commands
 
 ### Step 1: Train & Build ML Artifacts
-The dataset is pre-generated in `data/`. Run the ML pipeline to train models, compute decision thresholds, generate SHAP importances, and compile the instant-boot scoring cache:
+The dataset is pre-generated as `data/transactions.csv`; `ml.train` splits it 70/30 by time. Run the ML pipeline to train models, compute decision thresholds, generate SHAP importances, and compile the instant-boot scoring cache:
 ```bash
 python -m ml.train
 ```
@@ -228,9 +228,9 @@ To quickly verify scoring output on test cases:
 python -m ml.score
 ```
 
-*(Optional) To re-synthesize the dataset from scratch with seed 42:*
+*(Optional) To synthesize a fresh dataset of similar size (`--users 2000` gives about 79k rows; the committed file came from a slightly earlier generator version, so it will not be byte-identical):*
 ```bash
-python scripts/generate_data.py --seed 42
+python scripts/generate_data.py --users 2000 --seed 42
 ```
 
 ### Step 2: Start the Unified Backend & Frontend Server
@@ -300,7 +300,7 @@ tests/test_api.py::test_v1_cases_endpoint PASSED
 ## 11. Other Configuration
 
 ### Frontend Mock vs. Live Backend Mode
-In [`Frontend/assets/js/api.js`](file:///d:/Upay_Cloak/Frontend/assets/js/api.js), the communication mode is governed by:
+In [`Frontend/assets/js/api.js`](Frontend/assets/js/api.js), the communication mode is governed by:
 ```javascript
 const USE_MOCK = false, BASE_URL = '/api';
 ```
@@ -318,22 +318,26 @@ python -m ml.feedback --simulate 120 --drift --apply
 
 ## 12. Evaluation & Business Impact
 
-The models were evaluated using a strict **time-based train/test split** (training on the first 70% of chronological transactions, testing on the unseen final 30%).
+The models were evaluated on `data/transactions.csv` (79,711 synthetic transactions, 2,032 wallets, 30 days) using a strict **time-based split**: the first 70% of the timeline is used for training and validation (the last 20% of that slice picks the model and tunes the action thresholds), and the final 30% (23,914 transactions) is untouched until the final report. All numbers below come from `reports/metrics_v1.json`, written by `python -m ml.train`.
 
-### Model Benchmark Comparison
+### Model Benchmark Comparison (test set)
 
-| Model | ROC-AUC | PR-AUC | Precision @ 3% | Recall @ 3% | Inference Latency |
-|---|---|---|---|---|---|
-| Logistic Regression (Baseline) | 0.9982 | 0.9119 | 85.42% | 92.48% | <1 ms |
-| Random Forest Classifier | 0.9979 | 0.8975 | 86.11% | 93.23% | ~12 ms |
-| **LightGBM Classifier (Selected)** | **0.9985** | **0.9314** | **88.19%** | **95.49%** | **~2 ms** |
-| Isolation Forest (Unsupervised) | 0.9777 | 0.6655 | 65.97% | 71.43% | ~5 ms |
+| Model | ROC-AUC | PR-AUC | Precision @ 3% | Recall @ 3% |
+|---|---|---|---|---|
+| Logistic Regression (Baseline) | 0.9925 | 0.8368 | 56.62% | 88.07% |
+| Random Forest Classifier | 0.9988 | 0.9075 | 63.60% | 98.92% |
+| **LightGBM (Selected)** | **0.9986** | **0.9114** | **63.46%** | **98.70%** |
+| Isolation Forest (Unsupervised) | 0.9856 | 0.6408 | 49.79% | 77.44% |
+
+*LightGBM was selected by validation PR-AUC. Random Forest is statistically close; the choice between them is within run-to-run noise on this synthetic data. Single-row scoring (model + anomaly score, features already computed) takes about 15 ms on a laptop-class CPU, and about 23 ms with SHAP explanations. Feature computation is not included in that figure.*
 
 ### Tuned Business Impact Metrics
-Using the tuned cost matrix balancing fraud loss against customer friction:
-- **Fraud Value Prevented:** **~94.0%** of total attempted fraudulent funds stopped.
-- **Legitimate Customer Friction:** Only **~1.5%** of normal transactions subjected to verification.
-- **Scenarios Evaluated:** Account Takeover (98.4% recall), Money-Mule Networks (96.8% recall), Structuring Smurfing (95.1% recall), Rogue Agents (92.3% recall), and Scam Victims (81.2% recall).
+Using the cost matrix that balances fraud loss against customer friction (thresholds otp / hold / block = 0.01 / 0.02 / 0.03; the model is class-weighted, so its scores sit low and the cut-offs are low too):
+- **Fraud Value Prevented:** **91.8%** of attempted fraudulent funds.
+- **Legitimate Customer Friction:** **0.53%** of normal transactions got an OTP, hold or block.
+- **Recall by scenario (any action triggered):** Account Takeover 92.7%, Money-Mule Networks 100.0%, Structuring 100.0%, Scam Victims 68.8%. Rogue-agent bursts all fall in the training period of this dataset, so they have no test-set recall figure.
+
+**Caveat:** the data is synthetic (with 6% unreported-fraud label noise) and the same mule rings appear in both train and test, so absolute numbers are optimistic. Use them to compare models, not as real-world performance.
 
 ---
 
@@ -358,8 +362,8 @@ Developed with pride for the **Upay AI Dev Fest (Track 01: Trust & Risk Intellig
 
 | Name | Role | Responsibilities & Ownership | GitHub |
 |---|---|---|---|
-| **Abu Ridwan Siddque** | **ML & Data Lead** | Synthetic dataset generation, 23 point-in-time features, LightGBM/Isolation Forest training, SHAP explainability, model evaluation, and feedback calibration. | [@Ridwan-Rythm](https://github.com/Ridwan-Rythm) |
-| **Md. Sakib Hasan** | **Backend & Intelligence Lead** | FastAPI architecture, NetworkX graph intelligence, agent peer-group modeling, decision policy engine, grounded AI investigation assistant, and test suites. | [@sakib-hsn](https://github.com/sakib.hsn44) |
+| **Ridwan Siddque** | **ML & Data Lead** | Synthetic dataset generation, 23 point-in-time features, LightGBM/Isolation Forest training, SHAP explainability, model evaluation, and feedback calibration. | [@Ridwan-Rythm](https://github.com/Ridwan-Rythm) |
+| **Sakib Hasan** | **Backend & Intelligence Lead** | FastAPI architecture, NetworkX graph intelligence, agent peer-group modeling, decision policy engine, grounded AI investigation assistant, and test suites. | [@sakib-hsn](https://github.com/sakib.hsn44) |
 | **Aritro Das** | **Frontend & Product Lead** | Analyst dashboard UI, interactive graph explorer, case investigation view, bilingual English/Bangla warning demo, and design system. | [@aritrodas](https://github.com/aritrodas) |
 
 ---

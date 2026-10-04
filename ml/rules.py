@@ -1,4 +1,7 @@
-"""Human-readable rule trace + scam/ATO/mule tags (feeds the case view & LLM evidence JSON)."""
+"""Human-readable rule trace + scam/ATO/mule tags (feeds the case view & LLM evidence JSON).
+
+This is the ONLY copy of rule_trace; ml.score and ml.cache import it.
+"""
 
 
 def rule_trace(r):
@@ -16,6 +19,6 @@ def rule_trace(r):
         hit("MULE_02", "mule_network", f"Device shared by {int(r['device_users_count'])} accounts")
     if r["near_thr_24h"] >= 2:
         hit("STRUCT_01", "structuring", "Repeated cash-outs just under the 50,000 BDT threshold")
-    if r["agent_txn_1h"] >= 8 and r["is_night"]:
-        hit("AGENT_01", "agent_risk", "Agent processing an unusual night-time burst")
+    if r["agent_txn_1h"] >= 8 and (r["hour"] >= 22 or r["hour"] < 6):
+        hit("AGENT_01", "agent_risk", "Agent processing an unusual late-night burst")
     return hits

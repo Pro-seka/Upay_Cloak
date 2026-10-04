@@ -2,7 +2,7 @@
 import numpy as np
 from sklearn.metrics import average_precision_score, roc_auc_score
 
-from ml.decision import ACTIONS, FRICTION, STOP_RATE, to_action_idx
+from ml.decision import ACTIONS, FRICTION, STOP_RATE, action_idx
 
 
 def ranking_metrics(y, s, ks=(0.005, 0.01, 0.02)):
@@ -16,7 +16,7 @@ def ranking_metrics(y, s, ks=(0.005, 0.01, 0.02)):
 
 
 def business_impact(df, score, th):
-    a = to_action_idx(score, th); y = df.is_fraud.values; amt = df.amount.values
+    a = action_idx(score, th); y = df.is_fraud.values; amt = df.amount.values
     fraud_total = amt[y == 1].sum()
     prevented = (amt * STOP_RATE[a])[y == 1].sum()
     legit = y == 0
@@ -35,6 +35,6 @@ def business_impact(df, score, th):
 
 def scenario_recall(df, score, th):
     """Share of each injected scenario that triggers any action (uses true scenario, ignores label noise)."""
-    flagged = to_action_idx(score, th) > 0
+    flagged = action_idx(score, th) > 0
     inj = df[df.scenario != "normal"]
     return {s: round(float(flagged[g.index].mean()), 3) for s, g in inj.groupby("scenario")}

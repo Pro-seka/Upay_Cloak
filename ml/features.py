@@ -10,6 +10,7 @@ import numpy as np
 import pandas as pd
 
 TYPES = ["CASH_IN", "CASH_OUT", "TRANSFER", "PAYMENT"]
+TYPE_CODE = {t: i for i, t in enumerate(TYPES)}      # any other type (e.g. PaySim DEBIT) -> len(TYPES) instead of crashing
 THRESHOLD = 50_000
 
 FEATURES = [
@@ -30,12 +31,15 @@ FEATURES = [
 
 def _user_state():
     return dict(n=0, mean=0.0, m2=0.0, hours=np.zeros(24), devices=set(), locs=set(), recips=set(),
-                recent=deque(), last=None, inbound=deque(), near=deque())
+                recent=deque(), last=None, near=deque())
 
 
 def build_features(df: pd.DataFrame) -> pd.DataFrame:
-    df = df.sort_values("ts").reset_index(drop=True)
+    # stable, deterministic order even when timestamps tie (txn_id breaks ties)
+    df = df.sort_values(["ts", "txn_id"] if "txn_id" in df.columns else ["ts"], kind="stable").reset_index(drop=True)
     U = defaultdict(_user_state)
+    INB = defaultdict(deque)        # transfers received per account: (t, amount) - lightweight, no full user state
+    CNT = defaultdict(int)          # transactions made per account (used for "recipient age")
     R_senders, R_in = defaultdict(set), defaultdict(int)
     D_users = defaultdict(set)
     A = defaultdict(lambda: dict(out=0, inn=0, recent=deque()))
@@ -44,22 +48,23 @@ def build_features(df: pd.DataFrame) -> pd.DataFrame:
         t = r.ts.timestamp()
         h = r.ts.hour
         u = U[r.user_id]
+        inb = INB.get(r.user_id)
         warm = u["n"] >= 5                      # need some history before "deviation" means anything
         la = np.log1p(r.amount)
-        for dq, win in ((u["recent"], 3600), (u["inbound"], 3600), (u["near"], 86400)):
+        for dq, win in ((u["recent"], 3600), (inb, 3600), (u["near"], 86400)):
             while dq and dq[0][0] < t - win:
                 dq.popleft()
         std = max(np.sqrt(u["m2"] / (u["n"] - 1)), 0.3) if u["n"] > 1 else 1.0
-        near = THRESHOLD * .9 <= r.amount < THRESHOLD
+        near = r.type == "CASH_OUT" and THRESHOLD * .9 <= r.amount < THRESHOLD     # cash-outs just under the limit only
         is_cash = r.type in ("CASH_IN", "CASH_OUT")
         a = A[r.agent_id] if is_cash and r.agent_id else None
         if a:
             while a["recent"] and a["recent"][0] < t - 3600:
                 a["recent"].popleft()
-        in1h = sum(x[1] for x in u["inbound"])
-        rec_n = U[r.recipient_id]["n"] if r.type == "TRANSFER" else 100
+        in1h = sum(x[1] for x in inb) if inb else 0.0
+        rec_n = CNT.get(r.recipient_id, 0) if r.type == "TRANSFER" else 100
         out.append(dict(
-            log_amount=la, type_code=TYPES.index(r.type), hour=h, is_night=int(h < 6 or h >= 23),
+            log_amount=la, type_code=TYPE_CODE.get(r.type, len(TYPES)), hour=h, is_night=int(h < 6 or h >= 23),
             amount_z=(la - u["mean"]) / std if warm else 0.0,
             hour_freq=(u["hours"][h] + u["hours"][(h - 1) % 24] + u["hours"][(h + 1) % 24]) / u["n"] if warm else .5,
             amount_to_balance=r.amount / max(r.balance_before, 1),
@@ -82,6 +87,7 @@ def build_features(df: pd.DataFrame) -> pd.DataFrame:
         ))
         # ---- update state AFTER computing features ----
         u["n"] += 1
+        CNT[r.user_id] += 1
         d = la - u["mean"]
         u["mean"] += d / u["n"]
         u["m2"] += d * (la - u["mean"])
@@ -96,7 +102,7 @@ def build_features(df: pd.DataFrame) -> pd.DataFrame:
         R_senders[r.recipient_id].add(r.user_id)
         R_in[r.recipient_id] += 1
         if r.type == "TRANSFER":
-            U[r.recipient_id]["inbound"].append((t, r.amount))
+            INB[r.recipient_id].append((t, r.amount))
         D_users[r.device_id].add(r.user_id)
         if a:
             a["recent"].append(t)

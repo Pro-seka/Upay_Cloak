@@ -1,8 +1,7 @@
 """Generate the UpayShield sample dataset (synthetic, Bangladesh-flavoured mobile money).
 
-Writes a time-based split so nothing from the future leaks into training:
-    data/train.csv  -> first 70% of the timeline
-    data/test.csv   -> last 30% of the timeline
+Writes ONE file, data/transactions.csv (time-sorted). ml/data.py makes the time-based
+70/30 train/test split, so nothing from the future leaks into training.
 
 Normal behaviour: per-user habits (home city, device, usual hours, amount scale,
 contacts, agents). Fraud scenarios (injected after day 5 so users have history):
@@ -10,7 +9,7 @@ contacts, agents). Fraud scenarios (injected after day 5 so users have history):
 Realism knobs: salary-day spikes, legit large one-offs (rent, tuition), legit
 travel / new phones, and ~6% unreported fraud (label noise).
 
-Usage: python scripts/generate_data.py [--users 800] [--days 30] [--seed 42]
+Usage: python scripts/generate_data.py [--users 2000] [--days 30] [--seed 42]
 """
 import argparse
 from pathlib import Path
@@ -23,7 +22,6 @@ CITY_P = [.45, .15, .08, .08, .08, .05, .05, .06]
 TYPES = ["CASH_IN", "CASH_OUT", "TRANSFER", "PAYMENT"]
 START = pd.Timestamp("2026-01-01")
 DATA_DIR = Path(__file__).resolve().parents[1] / "data"
-TRAIN_FRAC = 0.70
 
 
 def generate(n_users=800, n_agents=40, days=30, seed=42):
@@ -144,15 +142,12 @@ def generate(n_users=800, n_agents=40, days=30, seed=42):
 
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
-    ap.add_argument("--users", type=int, default=800)
+    ap.add_argument("--users", type=int, default=2000)
     ap.add_argument("--days", type=int, default=30)
     ap.add_argument("--seed", type=int, default=42)
     a = ap.parse_args()
     df = generate(a.users, days=a.days, seed=a.seed)
-    cut = int(len(df) * TRAIN_FRAC)                           # df is time-sorted -> time-based split
     DATA_DIR.mkdir(exist_ok=True)
-    df.iloc[:cut].to_csv(DATA_DIR / "train.csv", index=False)
-    df.iloc[cut:].to_csv(DATA_DIR / "test.csv", index=False)
-    for name, d in (("train", df.iloc[:cut]), ("test", df.iloc[cut:])):
-        print(f"{name}: {len(d):,} txns | {d.ts.min():%Y-%m-%d} -> {d.ts.max():%Y-%m-%d} | fraud {d.is_fraud.mean():.2%}")
+    df.to_csv(DATA_DIR / "transactions.csv", index=False)
+    print(f"transactions: {len(df):,} txns | {df.ts.min():%Y-%m-%d} -> {df.ts.max():%Y-%m-%d} | fraud {df.is_fraud.mean():.2%}")
     print(df.scenario.value_counts().to_string())

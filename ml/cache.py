@@ -20,17 +20,16 @@ import pandas as pd
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
+from ml.data import DATA_PATH, load_transactions  # noqa: E402
 from ml.features import build_features  # noqa: E402
 from ml.score import MODEL_PATH, RiskEngine, rule_trace  # noqa: E402
 
 CACHE_PATH = ROOT / "data" / "cache" / "scored_cache.parquet"
-DEFAULT_CSVS = [ROOT / "data" / "train.csv", ROOT / "data" / "test.csv"]
 
 
 def build_cache(csvs=None, model_path=MODEL_PATH, out=CACHE_PATH):
     t0 = time.time()
-    csvs = [Path(c) for c in (csvs or DEFAULT_CSVS)]
-    raw = pd.concat([pd.read_csv(c, parse_dates=["ts"]).assign(split=c.stem) for c in csvs], ignore_index=True)
+    raw = load_transactions(csvs)                    # one dataset, time-based train/test `split` column
     feats = build_features(raw)                      # point-in-time, over the whole timeline in order
     eng = RiskEngine(model_path)
     risk, anomaly, actions = eng.predict(feats)
@@ -46,7 +45,7 @@ def build_cache(csvs=None, model_path=MODEL_PATH, out=CACHE_PATH):
 
     out = Path(out)
     out.parent.mkdir(parents=True, exist_ok=True)
-    feats.drop(columns=["_part"], errors="ignore").to_parquet(out, index=False)
+    feats.to_parquet(out, index=False)
     print(f"cache built: {len(feats):,} txns ({len(flagged):,} flagged with SHAP reasons) "
           f"-> {out.relative_to(ROOT)} [{out.stat().st_size / 1e6:.1f} MB, {time.time() - t0:.1f}s]")
     return feats
@@ -66,5 +65,5 @@ if __name__ == "__main__":
     import argparse
 
     ap = argparse.ArgumentParser(description="Build the scored cache")
-    ap.add_argument("--csv", nargs="+", help="CSV file(s) in time order (default: data/train.csv data/test.csv)")
+    ap.add_argument("--csv", nargs="+", help="CSV file(s) to score (default: data/transactions.csv)")
     build_cache(ap.parse_args().csv)

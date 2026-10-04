@@ -7,7 +7,7 @@ a pre-scored cache for instant startup, and an analyst-feedback loop.
 
 ```bash
 pip install -r requirements.txt          # needs: pandas numpy scikit-learn lightgbm shap pyarrow joblib matplotlib
-python -m ml.train                       # trains, writes models/ + reports/ AND builds data/cache/scored_cache.parquet
+python -m ml.train                       # reads data/transactions.csv, trains, writes models/ + reports/ AND builds data/cache/scored_cache.parquet
 python -m ml.score                       # demo: the 3 riskiest test transactions as full case JSON
 ```
 
@@ -15,10 +15,13 @@ python -m ml.score                       # demo: the 3 riskiest test transaction
 
 | File | Role |
 |---|---|
+| `data.py` | Loads `data/transactions.csv` and makes the time-based 70/30 `split` column (fills in missing `scenario` / `is_fraud` so other datasets load too) |
 | `features.py` | 23 point-in-time features (no future leakage) |
+| `rules.py` | The single `rule_trace` (rule hits + tags); `score.py` and `cache.py` import it |
 | `anomaly.py` | Isolation Forest behavioural anomaly score (0..1 percentile) |
 | `train.py` | Compares Logistic Regression / Random Forest / LightGBM / Isolation Forest, tunes action thresholds, saves the artifact, builds the cache |
-| `decision.py` | Risk score to `allow / otp_step_up / hold / block`, thresholds tuned on cost |
+| `decision.py` | Risk score to `allow / otp_step_up / hold / block`, thresholds tuned on cost (grid 0.01 to 0.95) |
+| `evaluate.py` | Standalone metric helpers (`train.py` has its own copies) |
 | `explain.py` | Local factor breakdown: top factors that raised and lowered the risk of any transaction |
 | `score.py` | `RiskEngine` for the backend: what-happened / why-risky / what-next JSON |
 | `cache.py` | Builds and loads the pre-scored dataset |
@@ -61,7 +64,7 @@ df = load_cache()      # ~1.7 s; builds once (about 18 s) if the file is missing
 `data/cache/scored_cache.parquet` holds every transaction with its raw columns, the 23 features, `split`,
 `risk_score`, `anomaly_score`, `action`, `tags`, and `reasons` (JSON string with the top positive and negative
 factors, filled for flagged rows only). Rebuild it after any retrain or threshold change
-(`python -m ml.cache`). For a different dataset: `python -m ml.cache --csv a.csv b.csv` (files in time order).
+(`python -m ml.cache`). For a different dataset: `python -m ml.cache --csv other.csv` (the same 70/30 time split is applied; a missing `scenario` column becomes `normal`).
 It is git-ignored.
 
 ## Analyst feedback loop (`ml/feedback.py`)
@@ -88,6 +91,8 @@ python -m ml.feedback --simulate 120 --drift       # demo without a backend (ana
    `python -m ml.train` (test labels are never changed). This also fixes unreported fraud the original labels missed.
 
 ## Known limitations
-- Synthetic data: use the numbers to compare models, not as real-world performance.
+- Synthetic data: use the numbers to compare models, not as real-world performance. The same mule rings appear in train and test, so metrics are optimistic.
+- Thresholds are low (about 0.01 to 0.03) because the model is class-weighted. The backend must read them from `models/risk_engine.joblib`, not hard-code them.
+- Unknown transaction types (for example PaySim `DEBIT`) get `type_code = 4` instead of crashing.
 - Decision-engine stop-rates and friction costs are assumptions.
 - The simulated analyst in `--simulate` is always right; real analysts are not, which is why the safety rails exist.

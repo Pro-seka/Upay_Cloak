@@ -1,7 +1,7 @@
 """UpayShield ML v1: compare basic algorithms, pick the best, tune actions, report honestly.
 
 Usage (from repo root):  python -m ml.train
-Reads  data/train.csv + data/test.csv   (time-based split made by scripts/generate_data.py)
+Reads  data/transactions.csv   (one dataset; ml/data.py makes the time-based 70/30 train/test split)
 Writes models/risk_engine.joblib, data/cache/scored_cache.parquet, reports/metrics_v1.json,
 reports/model_comparison_v1.md, reports/shap_importance_v1.json, reports/*.png
 """
@@ -29,6 +29,7 @@ sys.path.insert(0, str(ROOT))
 from ml.anomaly import BehaviorAnomaly  # noqa: E402
 from ml.decision import ACTIONS, FRICTION, STOP_RATE, action_idx, tune_thresholds  # noqa: E402
 from ml.explain import Explainer  # noqa: E402
+from ml.data import load_transactions  # noqa: E402
 from ml.features import FEATURES, build_features  # noqa: E402
 
 warnings.filterwarnings("ignore")
@@ -68,12 +69,10 @@ def business_impact(amount, y, score, th):
 
 
 def main():
-    train_raw = pd.read_csv(ROOT / "data" / "train.csv", parse_dates=["ts"])
-    test_raw = pd.read_csv(ROOT / "data" / "test.csv", parse_dates=["ts"])
-    train_raw["_part"], test_raw["_part"] = "train", "test"
-    # Features are built over the whole timeline in order (point-in-time), then split back by file.
-    feats = build_features(pd.concat([train_raw, test_raw], ignore_index=True))
-    tr_all, te = (feats[feats._part == p].reset_index(drop=True) for p in ("train", "test"))
+    raw = load_transactions()
+    # Features are built over the whole timeline in order (point-in-time), then split back by the `split` column.
+    feats = build_features(raw)
+    tr_all, te = (feats[feats.split == p].reset_index(drop=True) for p in ("train", "test"))
 
     # Analyst feedback (confirmed / dismissed cases) overrides TRAINING labels only; test labels stay untouched.
     if FEEDBACK_LABELS.exists():
