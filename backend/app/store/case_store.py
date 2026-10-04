@@ -12,10 +12,6 @@ import pandas as pd
 
 from backend.app.config import get_settings
 from backend.app.contracts.evidence_ids import extract_ids, txn as eid_txn
-
-def case_from_txn(txn_id: str) -> str:
-    cleaned = txn_id[4:] if txn_id.startswith("TXN-") else txn_id
-    return f"CASE-{cleaned}"
 from backend.app.contracts.interfaces import TXN_COLUMNS, CaseProvider
 from backend.app.contracts.schemas import (
     Action,
@@ -32,6 +28,11 @@ from backend.app.contracts.schemas import (
     WhyRisky,
 )
 from backend.app.contracts.schemas_core import FeedbackStats, KpiSummary, ReasonCount, TimeBucket
+
+
+def case_from_txn(txn_id: str) -> str:
+    cleaned = txn_id[4:] if txn_id.startswith("TXN-") else txn_id
+    return f"CASE-{cleaned}"
 
 # Demo baseline templates for frontend
 DEFAULT_BASELINES = {
@@ -376,11 +377,14 @@ class CaseStore(CaseProvider):
         return self._scored_by_txn_id.get(txn_id)
 
     def recent_transactions(self, wallet_id: str, until: datetime, limit: int = 20) -> list[Transaction]:
+        # Normalise `until` to UTC-aware so comparison with tz-aware `t.ts` never raises TypeError
+        if until.tzinfo is None:
+            until = until.replace(tzinfo=timezone.utc)
         results: list[Transaction] = []
         for t in self._txns_by_id.values():
-            if t.user_id == wallet_id or t.recipient_id == wallet_id:
-                if t.ts <= until:
-                    results.append(t)
+            ts = t.ts if t.ts.tzinfo is not None else t.ts.replace(tzinfo=timezone.utc)
+            if (t.user_id == wallet_id or t.recipient_id == wallet_id) and ts <= until:
+                results.append(t)
         results.sort(key=lambda x: x.ts, reverse=True)
         return results[:limit]
 
