@@ -37,11 +37,12 @@ class DecisionEngine:
         self,
         risk_score: float,
         amount_bdt: float,
-        rule_tags: list[str] = [],
+        rule_tags: list[str] | None = None,
         graph_signals: GraphSignals | None = None,
         agent_risk_score: float = 0.0,
         is_ring_member: bool = False,
     ) -> Decision:
+        rule_tags = rule_tags if rule_tags is not None else []
         base_action = self.base_recommend(risk_score)
         current_action = base_action
         current_severity = ACTION_SEVERITY[base_action]
