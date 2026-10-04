@@ -5,6 +5,7 @@ compute point-in-time network signals, and simulate wallet freezes.
 from __future__ import annotations
 
 import hashlib
+import time
 from collections import defaultdict
 from collections.abc import Mapping
 from datetime import datetime, timezone
@@ -122,7 +123,7 @@ class NetworkXGraphService(GraphService):
             if sender not in self.G:
                 self.G.add_node(sender, kind="wallet", label=sender, risk=0.05, total_volume_bdt=0.0, flags=[])
             if rcpt not in self.G:
-                rcpt_kind = "agent" if ttype == "cash_out" or rcpt.startswith("AGT-") or rcpt.startswith("A") else "wallet"
+                rcpt_kind = "agent" if ttype == "cash_out" or rcpt.startswith("AGT-") else "wallet"
                 self.G.add_node(rcpt, kind=rcpt_kind, label=rcpt, risk=0.05, total_volume_bdt=0.0, flags=[])
 
             # Update volume
@@ -235,7 +236,7 @@ class NetworkXGraphService(GraphService):
 
     def ingest(self, txn: Transaction) -> None:
         """Incrementally add a live transaction into the graph."""
-        tid = txn.txn_id or f"LIVE-{Date.now()}"
+        tid = txn.txn_id or f"LIVE-{int(time.time() * 1000)}"
         ts_str = txn.ts.isoformat()
         amt = float(txn.amount)
 
