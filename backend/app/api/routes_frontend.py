@@ -58,9 +58,17 @@ def _format_frontend_case(case: Case, container: Container) -> dict[str, Any]:
         {"action": "escalate", "label": "Escalate to compliance", "rationale": "For regulatory record-keeping and audit trail."},
     ]
 
-    # Subgraph
+    # Subgraph — frontend_view is a concrete helper, not in the protocol; fall back to view()
     sender_id = case.scored.user_id
-    subgraph = container.intel.graph.frontend_view(center=sender_id, depth=2)
+    graph_svc = container.intel.graph
+    if hasattr(graph_svc, "frontend_view"):
+        subgraph = graph_svc.frontend_view(center=sender_id, depth=2)
+    else:
+        gv = graph_svc.view(center=sender_id, depth=2)
+        subgraph = {
+            "nodes": [{"id": n.id, "type": n.kind, "label": n.label, "risk_score": n.risk, "flags": n.flags, "ring": bool(n.ring_id)} for n in gv.nodes],
+            "edges": [{"source": e.source, "target": e.target, "amount_bdt": e.amount_bdt, "count": e.count, "last_seen": e.last_ts or "today"} for e in gv.edges],
+        }
 
     # Narrative
     bundle = container.intel.evidence.build(case)
@@ -244,7 +252,14 @@ def get_frontend_graph_by_id(
     depth: int = Query(2, ge=1, le=4),
     container: Container = Depends(get_container),
 ) -> dict[str, Any]:
-    return container.intel.graph.frontend_view(center=entity_id, depth=depth)
+    graph_svc = container.intel.graph
+    if hasattr(graph_svc, "frontend_view"):
+        return graph_svc.frontend_view(center=entity_id, depth=depth)
+    gv = graph_svc.view(center=entity_id, depth=depth)
+    return {
+        "nodes": [{"id": n.id, "type": n.kind, "label": n.label, "risk_score": n.risk, "flags": n.flags, "ring": bool(n.ring_id)} for n in gv.nodes],
+        "edges": [{"source": e.source, "target": e.target, "amount_bdt": e.amount_bdt, "count": e.count, "last_seen": e.last_ts or "today"} for e in gv.edges],
+    }
 
 
 @router.get("/graph")
@@ -253,4 +268,12 @@ def get_frontend_full_graph(
     depth: int = Query(2, ge=1, le=4),
     container: Container = Depends(get_container),
 ) -> dict[str, Any]:
-    return container.intel.graph.frontend_view(center=center, depth=depth)
+    graph_svc = container.intel.graph
+    if hasattr(graph_svc, "frontend_view"):
+        return graph_svc.frontend_view(center=center, depth=depth)
+    effective_center = center or ""
+    gv = graph_svc.view(center=effective_center, depth=depth)
+    return {
+        "nodes": [{"id": n.id, "type": n.kind, "label": n.label, "risk_score": n.risk, "flags": n.flags, "ring": bool(n.ring_id)} for n in gv.nodes],
+        "edges": [{"source": e.source, "target": e.target, "amount_bdt": e.amount_bdt, "count": e.count, "last_seen": e.last_ts or "today"} for e in gv.edges],
+    }

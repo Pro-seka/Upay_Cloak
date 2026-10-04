@@ -97,9 +97,11 @@ def get_case_evidence(
 @router.post("/cases/{case_id}/narrative", response_model=Narrative)
 def generate_case_narrative(
     case_id: str,
-    req: NarrativeRequest = NarrativeRequest(),
+    req: NarrativeRequest | None = None,
     container: Container = Depends(get_container),
 ) -> Narrative:
+    if req is None:
+        req = NarrativeRequest()
     case = container.cases.get_case(case_id)
     if not case:
         raise HTTPException(status_code=404, detail={"error": {"code": "case_not_found", "message": f"Case {case_id} not found"}})
